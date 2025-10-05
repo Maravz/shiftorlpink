@@ -68,23 +68,39 @@ const Hire: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('hire_inquiries')
-        .insert([{
-          company_name: formData.companyName,
-          contact_name: formData.contactName,
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-hire-inquiry`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName: formData.companyName,
+          contactName: formData.contactName,
           email: formData.email,
           phone: formData.phone,
-          position_title: formData.positionTitle || 'Not specified',
-          department: formData.industry || 'Not specified',
-          responsibility_1: formData.delegation1,
-          responsibility_2: formData.delegation2,
-          responsibility_3: formData.delegation3,
-          salary_range: formData.budget || 'Not specified',
-          additional_info: `Position Level: ${formData.positionLevel || 'N/A'}, Timeline: ${formData.timeline || 'N/A'}, Requirements: ${formData.requirements || 'N/A'}, Benefits: ${formData.benefits || 'N/A'}, Message: ${formData.message || 'N/A'}`
-        }]);
+          industry: formData.industry,
+          companySize: formData.companySize,
+          positionTitle: formData.positionTitle,
+          positionLevel: formData.positionLevel,
+          timeline: formData.timeline,
+          budget: formData.budget,
+          requirements: formData.requirements,
+          benefits: formData.benefits,
+          message: formData.message,
+          delegation1: formData.delegation1,
+          delegation2: formData.delegation2,
+          delegation3: formData.delegation3
+        })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to submit inquiry');
+      }
 
       setSubmitStatus('success');
       setShowPopup(true);
@@ -114,7 +130,7 @@ const Hire: React.FC = () => {
       }, 5000);
     } catch (error) {
       setSubmitStatus('error');
-      setErrorMessage('Failed to submit inquiry. Please try again or email us directly at info@shiftorl.site');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to submit inquiry. Please try again or email us directly at hire@shiftorl.site');
     } finally {
       setIsSubmitting(false);
     }

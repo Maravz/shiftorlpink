@@ -71,19 +71,38 @@ const Apply: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('job_applications')
-        .insert([{
-          full_name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          phone: formData.phone,
-          position: formData.position || 'General Application',
-          top_skill_1: formData.skill1 || 'Not specified',
-          top_skill_2: formData.skill2 || 'Not specified',
-          top_skill_3: formData.skill3 || 'Not specified'
-        }]);
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-application`;
 
-      if (error) throw error;
+      const formDataToSend = new FormData();
+      formDataToSend.append('firstName', formData.firstName);
+      formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('position', formData.position);
+      formDataToSend.append('experience', formData.experience);
+      formDataToSend.append('location', formData.location);
+      formDataToSend.append('message', formData.message);
+      formDataToSend.append('skill1', formData.skill1);
+      formDataToSend.append('skill2', formData.skill2);
+      formDataToSend.append('skill3', formData.skill3);
+
+      if (file) {
+        formDataToSend.append('resume', file);
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: formDataToSend
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to submit application');
+      }
 
       setSubmitStatus('success');
       setShowThankYou(true);
@@ -109,7 +128,7 @@ const Apply: React.FC = () => {
       }, 5000);
     } catch (error) {
       setSubmitStatus('error');
-      setErrorMessage('Failed to submit application. Please try again or email your resume directly to apply@shiftorl.site');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to submit application. Please try again or email your resume directly to apply@shiftorl.site');
     } finally {
       setIsSubmitting(false);
     }

@@ -62,18 +62,29 @@ const Contact: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('client_inquiries')
-        .insert([{
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-contact-form`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           message: formData.message
-        }]);
+        })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to submit inquiry');
+      }
 
       setSubmitStatus('success');
-      setStatusMessage('Thank you for contacting us! We will respond within 3 business days.');
+      setStatusMessage(result.message || 'Thank you for contacting us! We will respond within 3 business days.');
       setFormData({ name: '', email: '', message: '' });
     } catch (error) {
       setSubmitStatus('error');
